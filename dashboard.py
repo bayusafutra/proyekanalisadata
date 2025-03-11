@@ -80,4 +80,4 @@ elif menu == "Pertanyaan 2":
 
 # Footer
 st.sidebar.markdown("---")
-st.sidebar.text("Dashboard by Bayu - Laskar AI")
+st.sidebar.text("Dashboard by Mochamad Bayu Safutra - Laskar AI")
