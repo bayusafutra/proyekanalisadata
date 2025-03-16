@@ -16,13 +16,6 @@ seller_distribution.columns = ["seller_state", "total_sellers"]
 top_cities = sellers_df['seller_city'].value_counts().head(10).reset_index()
 top_cities.columns = ['seller_city', 'total_sellers']
 
-# Data untuk visualisasi pertanyaan 2
-transactions_by_city = merged_data.groupby('seller_city')['order_id'].nunique().reset_index()
-transactions_by_city.columns = ['seller_city', 'total_transactions']
-top_cities_transactions = transactions_by_city.sort_values(by='total_transactions', ascending=False).head(10)
-transactions_by_state = merged_data.groupby('seller_state')['order_id'].nunique().reset_index()
-transactions_by_state.columns = ['seller_state', 'total_transactions']
-
 # Judul Dashboard
 st.title("Dashboard Analisis Data E-Commerce")
 
@@ -39,14 +32,14 @@ if menu == "Pertanyaan 1":
     # Visualisasi Top 10 Kota dengan Jumlah Penjual Terbanyak
     st.subheader("Top 10 Kota dengan Jumlah Penjual Terbanyak")
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x='total_sellers', y='seller_city', data=top_cities, palette='viridis', ax=ax)
+    sns.barplot(x='total_sellers', y='seller_city', data=top_cities, palette='Blues_r', ax=ax)
     ax.set_title('Top 10 Kota dengan Jumlah Penjual Terbanyak')
     st.pyplot(fig)
 
     # Visualisasi Distribusi Penjual Berdasarkan Negara Bagian
     st.subheader("Distribusi Penjual Berdasarkan Negara Bagian")
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x='seller_state', y='total_sellers', data=seller_distribution.sort_values(by='total_sellers', ascending=False), palette='Blues_d', ax=ax)
+    sns.barplot(x='seller_state', y='total_sellers', data=seller_distribution.sort_values(by='total_sellers', ascending=False), palette='Blues_r', ax=ax)
     ax.set_title('Distribusi Penjual Berdasarkan Negara Bagian')
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
     st.pyplot(fig)
@@ -59,24 +52,43 @@ elif menu == "Pertanyaan 2":
     st.header("Pertanyaan 2")
     st.write("**Bagaimana hubungan antara lokasi penjual dan jumlah transaksi yang mereka terima?**")
 
-    # Visualisasi Top 10 Kota dengan Jumlah Transaksi Terbanyak
-    st.subheader("Top 10 Kota dengan Jumlah Transaksi Terbanyak")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x='total_transactions', y='seller_city', data=top_cities_transactions, palette='magma', ax=ax)
-    ax.set_title('Top 10 Kota dengan Jumlah Transaksi Terbanyak')
-    st.pyplot(fig)
+    # Filter berdasarkan tanggal
+    st.sidebar.subheader("Filter Tanggal")
+    min_date = pd.to_datetime(order_items_df['shipping_limit_date']).min().date()
+    max_date = pd.to_datetime(order_items_df['shipping_limit_date']).max().date()
+    date_range = st.sidebar.date_input("Pilih Rentang Tanggal:", [min_date, max_date])
 
-    # Visualisasi Jumlah Transaksi Berdasarkan Negara Bagian
-    st.subheader("Jumlah Transaksi Berdasarkan Negara Bagian")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x='seller_state', y='total_transactions', data=transactions_by_state.sort_values(by='total_transactions', ascending=False), palette='coolwarm', ax=ax)
-    ax.set_title('Jumlah Transaksi Berdasarkan Negara Bagian Penjual')
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
-    st.pyplot(fig)
+    if len(date_range) == 2:
+        start_date, end_date = date_range
 
-    # Conclusion
-    st.subheader("Conclusion")
-    st.write("Terdapat korelasi positif antara lokasi penjual dan jumlah transaksi yang diterima. Kota-kota besar dengan jumlah penjual yang tinggi juga cenderung memiliki volume transaksi yang lebih besar. Selain itu, negara bagian dengan distribusi penjual yang lebih luas juga menunjukkan aktivitas transaksi yang lebih tinggi.")
+        filtered_data = merged_data[(pd.to_datetime(merged_data['shipping_limit_date']).dt.date >= start_date) &
+                                    (pd.to_datetime(merged_data['shipping_limit_date']).dt.date <= end_date)]
+
+        transactions_by_city = filtered_data.groupby('seller_city')['order_id'].nunique().reset_index()
+        transactions_by_city.columns = ['seller_city', 'total_transactions']
+        top_cities_transactions = transactions_by_city.sort_values(by='total_transactions', ascending=False).head(10)
+
+        transactions_by_state = filtered_data.groupby('seller_state')['order_id'].nunique().reset_index()
+        transactions_by_state.columns = ['seller_state', 'total_transactions']
+
+        # Visualisasi Top 10 Kota dengan Jumlah Transaksi Terbanyak
+        st.subheader("Top 10 Kota dengan Jumlah Transaksi Terbanyak")
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sns.barplot(x='total_transactions', y='seller_city', data=top_cities_transactions, palette='Greens_r', ax=ax)
+        ax.set_title('Top 10 Kota dengan Jumlah Transaksi Terbanyak')
+        st.pyplot(fig)
+
+        # Visualisasi Jumlah Transaksi Berdasarkan Negara Bagian
+        st.subheader("Jumlah Transaksi Berdasarkan Negara Bagian")
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sns.barplot(x='seller_state', y='total_transactions', data=transactions_by_state.sort_values(by='total_transactions', ascending=False), palette='Greens_r', ax=ax)
+        ax.set_title('Jumlah Transaksi Berdasarkan Negara Bagian Penjual')
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+        st.pyplot(fig)
+
+        # Conclusion
+        st.subheader("Conclusion")
+        st.write("Terdapat korelasi positif antara lokasi penjual dan jumlah transaksi yang diterima. Kota-kota besar dengan jumlah penjual yang tinggi juga cenderung memiliki volume transaksi yang lebih besar. Selain itu, negara bagian dengan distribusi penjual yang lebih luas juga menunjukkan aktivitas transaksi yang lebih tinggi.")
 
 # Footer
 st.sidebar.markdown("---")
